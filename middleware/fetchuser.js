@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
-const JWT_KEY =
-  "thisisasecretkeycreatedbyjayprajapatiandsomerandomcharlike@#$%";
+require("dotenv").config();
+
+const JWT_KEY = process.env.REACT_APP_JWT_SIGNATURE_KEY;
 
 const fetchuser = (req, res, next) => {
   const token = req.header("auth-token");

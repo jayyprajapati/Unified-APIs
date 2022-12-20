@@ -5,9 +5,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const fetchuser = require("../middleware/fetchuser");
 const { body, validationResult } = require("express-validator");
+require("dotenv").config();
 
-const JWT_KEY =
-  "thisisasecretkeycreatedbyjayprajapatiandsomerandomcharlike@#$%";
+const JWT_KEY = process.env.REACT_APP_JWT_SIGNATURE_KEY;
 
 // ––––––––––––––––––––––––––Route: 1––––––––––––––––––––––––––
 // create a new user via POST("/api/auth/signup"). No login required
@@ -36,8 +36,8 @@ router.post(
       if (user) {
         return res.json({
           success,
-          errors: [{ msg: "User already exists" }],
-          message: "User already exists",
+          errors: [{ msg: "User Already Exists" }],
+          message: "User Already Exists",
         });
       }
 
@@ -61,7 +61,7 @@ router.post(
       res.json({ success, authToken, message: "Login Successful" });
     } catch (error) {
       console.error(error.message);
-      res.json({ success, message: "Some Internal error occurred" });
+      res.json({ success, message: "Some Internal Error Occurred" });
     }
   }
 );
@@ -79,7 +79,7 @@ router.post(
       return res.json({
         success,
         errors: errors.array(),
-        message: "Enter a valid data",
+        message: "Invalid Input",
       });
     }
     try {
@@ -90,8 +90,8 @@ router.post(
       if (!user) {
         return res.json({
           success,
-          errors: [{ error: "Please use correct email credentials" }],
-          message: "Please use correct email credentials",
+          errors: [{ error: "Invalid Credentials" }],
+          message: "Invalid Credentials",
         });
       }
 
@@ -101,8 +101,8 @@ router.post(
       if (!validatePass) {
         return res.json({
           success,
-          errors: [{ error: "Please use correct password credentials" }],
-          message: "Please use correct password credentials",
+          errors: [{ error: "Invalid Credentials" }],
+          message: "Invalid Credentials",
         });
       }
 
@@ -116,7 +116,7 @@ router.post(
       res.json({ success, authToken, message: "Login Successful" });
     } catch (error) {
       console.error(error.message);
-      res.status(500).json({ message: "Some Internal error occurred" });
+      res.status(500).json({ message: "Some Internal Error Occurred" });
     }
   }
 );
@@ -130,7 +130,7 @@ router.post("/getuser", fetchuser, async (req, res) => {
     res.json({ user });
   } catch (error) {
     console.error(error.message);
-    res.status(500).send("some error occurred");
+    res.status(500).send("Some Internal Error Occurred");
   }
 });
 module.exports = router;
