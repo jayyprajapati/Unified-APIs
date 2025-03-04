@@ -9,17 +9,17 @@ const {createSession, verifySession, sessionExists, getSession, removeUserFromSe
 module.exports = (httpServer) => {
   const router = express.Router();
   router.use(cors({
-    origin: process.env.CORS_ORIGINS.split(','), // Split comma-separated values
+    origin: 'https://codehive.jayprajapati.me', // Split comma-separated values
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    // credentials: true
   }));
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CORS_ORIGINS.split(','),
+      origin: "https://codehive.jayprajapati.me",
       methods: ["GET", "POST"],
       allowedHeaders: ["Authorization"],
-      credentials: true
+      // credentials: true
     }
   });
 
