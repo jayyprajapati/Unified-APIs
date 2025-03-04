@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 const mongoUserName = process.env.MONGODB_USERNAME;
 const mongoUserPassword = process.env.MONGODB_PASSWORD;
-const mongoURI = `mongodb+srv://${mongoUserName}:${mongoUserPassword}@cloudnotes.bx9dv3c.mongodb.net/?retryWrites=true&w=majority`;
+const mongoURI = `mongodb+srv://${mongoUserName}:${mongoUserPassword}@unifiedcluster.bj7dm.mongodb.net/?retryWrites=true&w=majority&appName=UnifiedCluster`;
 
 const connectToMongo = () => {
   mongoose.connect(mongoURI, (err) => {

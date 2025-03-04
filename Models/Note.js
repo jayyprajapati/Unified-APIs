@@ -24,7 +24,7 @@ const notesSchema = new Schema({
   },
 });
 
-const Notes = mongoose.model("notes", notesSchema);
+const Note = mongoose.model("notes", notesSchema);
 
-Notes.createIndexes();
-module.exports = Notes;
+Note.createIndexes();
+module.exports = Note;
