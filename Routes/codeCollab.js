@@ -9,7 +9,7 @@ module.exports = (httpServer) => {
   const router = express.Router();
   const io = new Server(httpServer, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: process.env.WEBSOCKET_WHITELIST_URL,
       methods: ["GET", "POST"],
       allowedHeaders: ["Authorization"],
       credentials: true
@@ -17,34 +17,6 @@ module.exports = (httpServer) => {
   });
 
   const docker = new Docker();
-//   const sessions = new Map();
-
-  // Session helpers
-//   function createSession(sessionId, password, owner) {
-//     sessions.set(sessionId, {
-//       users: new Map(),
-//       code: '// New session started...',
-//       chat: [],
-//       password: crypto.createHash('sha256').update(password).digest('hex'),
-//       owner,
-//       createdAt: new Date(),
-//       active: true
-//     });
-//   }
-
-//   function verifySession(sessionId, password) {
-//     const session = sessions.get(sessionId);
-//     if (!session || !session.active) return false;
-//     return session.password === crypto.createHash('sha256').update(password).digest('hex');
-//   }
-
-//   function sessionExists(sessionId) {
-//     return sessions.has(sessionId);
-//   }
-
-//   function getSession(sessionId) {
-//     return sessions.get(sessionId);
-//   }
 
   // HTTP Routes
   router.post('/verify-session', async(req, res) => {
@@ -81,7 +53,6 @@ module.exports = (httpServer) => {
         }
   
         
-        // const isOwner = userId === session.owner;
         const userEntry = {
             socketId: socket.id,
             name: user,
@@ -94,20 +65,7 @@ module.exports = (httpServer) => {
             { $push: { users: userEntry } }
         );
 
-        // session.users.set(socket.id, {
-        //   name: user,
-        //   id: userId,
-        //   role: isOwner ? 'owner' : 'editor'
-        // });
-  
-        // socket.join(sessionId);
-        // const userList = Array.from(session.users.values()).map(u => ({
-        //   name: u.name,
-        //   role: u.role
-        // }));
         const updatedSession = await getSession(sessionId);
-        // console.log(updatedSession);
-        console.log(updatedSession.users.map(u => ({ name: u.name, role: u.role })))
         socket.join(sessionId);
         io.to(sessionId).emit('user-list', updatedSession.users.map(u => ({ name: u.name, role: u.role })));
         socket.broadcast.to(sessionId).emit('user-joined', { user });
@@ -127,7 +85,6 @@ module.exports = (httpServer) => {
                     const session = await getSession(sessionId);
                     
                     if (session) {
-                    //   const requester = session.users.get(socket.id);
                     const requester = session.users.find(u => u.socketId === socket.id);
                       
                       if (requester?.role === 'owner') {
@@ -140,16 +97,6 @@ module.exports = (httpServer) => {
                           );
             
                         const updatedSession = await getSession(sessionId);
-                        // for (const [sid, user] of session.users) {
-                        //   if (user.name === targetUser) {
-                        //     user.role = newRole;
-                        //     io.to(sessionId).emit('role-updated', {
-                        //       user: targetUser,
-                        //       newRole: newRole
-                        //     });
-                        //     break;
-                        //   }
-                        // }
                         io.to(sessionId).emit('role-updated', {
                             user: targetUser,
                             newRole: newRole,
@@ -177,10 +124,6 @@ module.exports = (httpServer) => {
                 console.log("session deleted");
                 
                 io.to(sessionId).emit('session-ended');
-                // session.active = false;
-                // io.to(sessionId).emit('session-ended');
-                // sessions.delete(sessionId);
-                // console.log(sessions);
             }
         } catch (error) {
             console.error('Session termination error:', error);
@@ -199,7 +142,6 @@ module.exports = (httpServer) => {
                 await removeUserFromSession(sessionId, socket.id);
                 socket.leave(sessionId);
                 console.log(user);
-                // session.users.delete(socket.id);
                 io.to(sessionId).emit('user-left', {
                     user: user.name,
                     message: `${user.name} has left the session`
@@ -214,11 +156,6 @@ module.exports = (httpServer) => {
   
     socket.on('code-change', async (data) => {
         try {
-            // const session = await getSession(data.sessionId);
-            // if (session) {
-            //     session.code = data.code;
-            //     socket.broadcast.to(data.sessionId).emit('code-update', data.code);
-            // }
             await Session.findOneAndUpdate(
                 { sessionId: data.sessionId },
                 { $set: { code: data.code } }
@@ -234,7 +171,6 @@ module.exports = (httpServer) => {
         try {
             const session = await getSession(data.sessionId);
             if (session) {
-            // const user = session.users.get(socket.id);
             const user = session.users.find(u => u.socketId === socket.id);
             const message = {
                 user: user.name,
@@ -242,7 +178,6 @@ module.exports = (httpServer) => {
                 timestamp: new Date().toISOString()
             };
 
-            // session.chat.push(message);
             await Session.findOneAndUpdate(
                 { sessionId: data.sessionId },
                 { $push: { chat: message } }
@@ -345,61 +280,12 @@ module.exports = (httpServer) => {
         }
     });
 
-    // socket.on('code-executed', async (data) => {
-    //     try {
-    
-    //       // --- Session Validation ---
-    //       const session = sessions.get(data?.sessionId);
-    //       if (!session) {
-    //         return; // Silent fail or add error emit
-    //       }
-    
-    //       // --- User Permission Check ---
-    //       const user = session.users.get(socket.id);
-    //       if (!user || !['owner', 'editor'].includes(user.role)) {
-    //         return; // Silent fail or add error emit
-    //       }
-    
-    //       // --- Output Handling ---
-    //       const truncatedOutput = data.output 
-    //         ? data.output.slice(0, 1000) 
-    //         : '';
-    
-    //       // --- Broadcast Result ---
-    //       io.to(data.sessionId).emit('execution-result', {
-    //         output: truncatedOutput,
-    //         user: user.name,
-    //         timestamp: new Date().toISOString()
-    //       });
-    
-    //     } catch (error) {
-    //       console.error(`Execution broadcast error: ${error.message}`);
-    //       // Optionally send error to client:
-    //       socket.emit('error', { message: 'Processing failed' });
-    //     }
-    //   });
-  
     socket.on('disconnect', async () => {
         try {
-            // Find all sessions where this socket.id exists in users
             const sessions = await Session.find({
                 'users.socketId': socket.id
             });
-            // sessions.forEach((session, sessionId) => {
-            // if (session.users.has(socket.id)) {
-            //     const user = session.users.get(socket.id).name;
-            //     session.users.delete(socket.id);
-                
-            //     io.to(sessionId).emit('user-left', { 
-            //     user,
-            //     message: `${user} has left the session`
-            //     });
-        
-            //     if (session.users.size === 0) {
-            //     sessions.delete(sessionId);
-            //     }
-            // }
-            // });
+
             for (const session of sessions) {
                 await Session.updateOne(
                   { sessionId: session.sessionId },
