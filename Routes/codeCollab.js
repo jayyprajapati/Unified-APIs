@@ -27,7 +27,7 @@ module.exports = (httpServer) => {
       origin: "https://codehive.jayprajapati.me",
       methods: ["GET", "POST"],
       allowedHeaders: ["Authorization"],
-      // credentials: true
+      credentials: true
     }
   });
 
