@@ -14,6 +14,14 @@ module.exports = (httpServer) => {
     allowedHeaders: ['Content-Type', 'Authorization'],
     // credentials: true
   }));
+
+  router.options('*', cors());
+  router.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.sendStatus(200); 
+  });
   const io = new Server(httpServer, {
     cors: {
       origin: "https://codehive.jayprajapati.me",
