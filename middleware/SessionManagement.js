@@ -48,4 +48,25 @@ async function updateSession(sessionId, update) {
     );
   }
 
-  module.exports = {createSession, verifySession, sessionExists, getSession, updateSession, removeUserFromSession}
+  function isCodeSafe(code, language) {
+    const bannedPatterns = {
+      python: [
+        /import\s+(os|subprocess|sys|shutil|platform)/,
+        /from\s+(os|subprocess|sys)\s+import/,
+        /eval\(|exec\(|open\(|system\(/
+      ],
+      javascript: [
+        /require\(['"]child_process['"]\)/,
+        /require\(['"]fs['"]\)/,
+        /eval\(|new Function\(|process\.(exit|kill)/
+      ],
+      java: [
+        /Runtime\.getRuntime\(\)/,
+        /ProcessBuilder|UNIXProcess/,
+        /exec\(|反射/
+      ]
+    };
+    return !bannedPatterns[language]?.some(pattern => pattern.test(code));
+  }
+
+  module.exports = {createSession, verifySession, sessionExists, getSession, updateSession, removeUserFromSession, isCodeSafe}

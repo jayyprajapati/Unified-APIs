@@ -3,7 +3,7 @@ const { Server } = require('socket.io');
 const Docker = require('dockerode');
 const { Buffer } = require('buffer');
 const { Session } = require('../Models/Session');
-const {createSession, verifySession, sessionExists, getSession, removeUserFromSession} = require('../middleware/SessionManagement')
+const {createSession, verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
 
 module.exports = (httpServer) => {
   const router = express.Router();
@@ -197,6 +197,13 @@ module.exports = (httpServer) => {
         const session = await getSession(sessionId);
         if (!session || !session.active) {
             return socket.emit('error', { message: 'Invalid session' });
+        }
+
+        if (!isCodeSafe(data.code, data.language)) {
+          return io.to(data.sessionId).emit('terminal-output', {
+            sessionId: data.sessionId,
+            output: "Error: Code contains prohibited patterns\n"
+          });
         }
     
         try {
