@@ -2,14 +2,21 @@ const express = require('express');
 const { Server } = require('socket.io');
 const Docker = require('dockerode');
 const { Buffer } = require('buffer');
+const cors = require('cors');
 const { Session } = require('../Models/Session');
 const {createSession, verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
 
 module.exports = (httpServer) => {
   const router = express.Router();
+  router.use(cors({
+    origin: process.env.CORS_ORIGINS.split(','), // Split comma-separated values
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  }));
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.WEBSOCKET_WHITELIST_URL,
+      origin: process.env.CORS_ORIGINS.split(','),
       methods: ["GET", "POST"],
       allowedHeaders: ["Authorization"],
       credentials: true
