@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Notes = require("../Models/Notes");
+const Note = require("../Models/Note");
 const fetchuser = require("../middleware/fetchuser");
 const { body, validationResult } = require("express-validator");
 
@@ -15,7 +15,7 @@ router.get(
     let success = false;
     try {
       // Find user notes by id
-      let notes = await Notes.find({ user: req.user.id });
+      let notes = await Note.find({ user: req.user.id });
       // Send the response
       res.send(notes);
     } catch (error) {
@@ -49,7 +49,7 @@ router.post(
       const { title, description, tag } = req.body;
 
       // Create a new note for the user
-      const note = await Notes.create({
+      const note = await Note.create({
         title,
         description,
         tag,
@@ -97,7 +97,7 @@ router.put(
       }
       newNote.date = Date.now();
       // Search for the note using note id
-      let note = await Notes.findById(req.params.id);
+      let note = await Note.findById(req.params.id);
       // If note is not found using the note id
       if (!note) {
         return res.json({ message: "Note not found", success });
@@ -107,7 +107,7 @@ router.put(
         return res.json({ message: "Not Authorized", success });
 
       // If no errors, UPDATE note in database
-      note = await Notes.findByIdAndUpdate(
+      note = await Note.findByIdAndUpdate(
         req.params.id,
         { $set: newNote },
         { new: true }
@@ -135,7 +135,7 @@ router.delete(
     let success = false;
     try {
       // Search for the note using note id
-      let note = await Notes.findById(req.params.id);
+      let note = await Note.findById(req.params.id);
 
       // If note is not found using the note id
       if (!note) {
@@ -147,7 +147,7 @@ router.delete(
         return res.json({ message: "Not Authorized", success });
 
       // If no errors, DELETE note from database
-      note = await Notes.findByIdAndDelete(req.params.id);
+      note = await Note.findByIdAndDelete(req.params.id);
 
       // Set success status to true
       success = true;
