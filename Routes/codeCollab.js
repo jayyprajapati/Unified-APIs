@@ -25,11 +25,11 @@ module.exports = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
       origin: "https://*.jayprajapati.me",
-      methods: ["GET", "POST"],
-      transports: ['websocket'],
-      allowedHeaders: ["Authorization"],
-      credentials: true
-    }
+      // methods: ["GET", "POST"],
+      // allowedHeaders: ["Authorization"],
+      // credentials: true
+    },
+    transports: ['websocket']
   });
 
   const docker = new Docker();
