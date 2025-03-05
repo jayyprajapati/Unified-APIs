@@ -13,12 +13,7 @@ const port = process.env.PORT || 8000;
 
 const httpServer = createServer(app);
 
-app.use(cors({
-  origin: 'https://*.jayprajapati.me',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.options('*', cors());
+app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
