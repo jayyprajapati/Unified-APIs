@@ -3,7 +3,7 @@ const { connectRedisCloud } = require("./redis");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require('body-parser');
-const { createServer } = require("http");
+const { createServer } = require("https");
 require("dotenv").config();
 connectToMongo();
 connectRedisCloud();
@@ -11,7 +11,7 @@ connectRedisCloud();
 const app = express();
 const port = process.env.PORT || 8000;
 
-const httpServer = createServer(app);
+const httpsServer = createServer(app);
 
 app.use(cors());
 app.use(express.json());
@@ -28,9 +28,9 @@ app.use("/api/notes/", require("./Routes/notes"));
 app.use("/api/stocks/", require("./Routes/stocks"));
 app.use("/api/validateSession/", require("./Routes/sessionsValidation"));
 
-const collabRouter = require("./Routes/codeCollab")(httpServer); // Add this
+const collabRouter = require("./Routes/codeCollab")(httpsServer); // Add this
 app.use("/api/codeCollab", collabRouter);
 
-httpServer.listen(port, () => {
+httpsServer.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
