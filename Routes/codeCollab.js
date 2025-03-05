@@ -24,7 +24,7 @@ module.exports = (httpServer) => {
   // });
   const io = new Server(httpServer, {
     cors: {
-      origin: "https://codehive.jayprajapati.me",
+      origin: "https://*.jayprajapati.me",
       methods: ["GET", "POST"],
       allowedHeaders: ["Authorization"],
       credentials: true
