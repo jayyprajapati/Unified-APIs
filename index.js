@@ -3,7 +3,7 @@ const { connectRedisCloud } = require("./redis");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require('body-parser');
-const { createServer } = require("https");
+const { createServer } = require("http");
 require("dotenv").config();
 connectToMongo();
 connectRedisCloud();
@@ -11,7 +11,7 @@ connectRedisCloud();
 const app = express();
 const port = process.env.PORT || 8000;
 
-const httpsServer = createServer(app);
+const httpServer = createServer(app);
 
 app.use(cors({
   origin: 'https://*.jayprajapati.me',
@@ -33,9 +33,9 @@ app.use("/api/notes/", require("./Routes/notes"));
 app.use("/api/stocks/", require("./Routes/stocks"));
 app.use("/api/validateSession/", require("./Routes/sessionsValidation"));
 
-const collabRouter = require("./Routes/codeCollab")(httpsServer); // Add this
+const collabRouter = require("./Routes/codeCollab")(httpServer); // Add this
 app.use("/api/codeCollab", collabRouter);
 
-httpsServer.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

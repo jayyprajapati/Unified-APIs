@@ -6,7 +6,7 @@ const { Buffer } = require('buffer');
 const { Session } = require('../Models/Session');
 const { verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
 
-module.exports = (httpsServer) => {
+module.exports = (httpServer) => {
   const router = express.Router();
   // router.use(cors({
   //   origin: 'https://codehive.jayprajapati.me', // Split comma-separated values
@@ -22,7 +22,7 @@ module.exports = (httpsServer) => {
   //   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   //   res.sendStatus(200); 
   // });
-  const io = new Server(httpsServer, {
+  const io = new Server(httpServer, {
     cors: {
       origin: "https://*.jayprajapati.me",
       methods: ["GET", "POST"],
