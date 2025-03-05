@@ -2,26 +2,26 @@ const express = require('express');
 const { Server } = require('socket.io');
 const Docker = require('dockerode');
 const { Buffer } = require('buffer');
-const cors = require('cors');
+// const cors = require('cors');
 const { Session } = require('../Models/Session');
-const {createSession, verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
+const { verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
 
 module.exports = (httpServer) => {
   const router = express.Router();
-  router.use(cors({
-    origin: 'https://codehive.jayprajapati.me', // Split comma-separated values
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    // credentials: true
-  }));
+  // router.use(cors({
+  //   origin: 'https://codehive.jayprajapati.me', // Split comma-separated values
+  //   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  //   allowedHeaders: ['Content-Type', 'Authorization'],
+  //   // credentials: true
+  // }));
 
-  router.options('*', cors());
-  router.options('*', (req, res) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.sendStatus(200); 
-  });
+  // router.options('*', cors());
+  // router.options('*', (req, res) => {
+  //   res.header('Access-Control-Allow-Origin', '*');
+  //   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  //   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  //   res.sendStatus(200); 
+  // });
   const io = new Server(httpServer, {
     cors: {
       origin: "https://codehive.jayprajapati.me",
@@ -34,28 +34,28 @@ module.exports = (httpServer) => {
   const docker = new Docker();
 
   // HTTP Routes
-  router.post('/verify-session', async(req, res) => {
-    const { sessionId, password } = req.body;
-    if (!(await sessionExists(sessionId))) {
-      return res.status(404).json({ valid: false, error: 'Session does not exist' });
-    }
-    if (!(await verifySession(sessionId, password))) {
-      return res.status(401).json({ valid: false, error: 'Invalid password' });
-    }
-    res.json({ valid: true });
-  });
+  // router.post('/verify-session', async(req, res) => {
+  //   const { sessionId, password } = req.body;
+  //   if (!(await sessionExists(sessionId))) {
+  //     return res.status(404).json({ valid: false, error: 'Session does not exist' });
+  //   }
+  //   if (!(await verifySession(sessionId, password))) {
+  //     return res.status(401).json({ valid: false, error: 'Invalid password' });
+  //   }
+  //   res.json({ valid: true });
+  // });
 
-  router.post('/create-session', async (req, res) => {
-    const { sessionId, password, owner } = req.body;
-    if (await sessionExists(sessionId)) {
-      return res.status(400).json({ valid: false, error: 'Session ID exists' });
-    }
-    await createSession(sessionId, password, owner);
-    res.json({ valid: true });
-  });
+  // router.post('/create-session', async (req, res) => {
+  //   const { sessionId, password, owner } = req.body;
+  //   if (await sessionExists(sessionId)) {
+  //     return res.status(400).json({ valid: false, error: 'Session ID exists' });
+  //   }
+  //   await createSession(sessionId, password, owner);
+  //   res.json({ valid: true });
+  // });
 
   // Socket.io Handlers
-  io.on('connection', (socket) => {
+  io.on('connect', (socket) => {
     console.log('Client connected:', socket.id);
   
     socket.on('join-session', async (data) => {
