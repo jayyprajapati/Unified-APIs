@@ -2,6 +2,7 @@ const express = require('express');
 const { Server } = require('socket.io');
 const Docker = require('dockerode');
 const { Buffer } = require('buffer');
+const axios = require('axios'); 
 // const cors = require('cors');
 const { Session } = require('../Models/Session');
 const { verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
@@ -223,82 +224,63 @@ module.exports = (httpServer) => {
         }
     
         try {
-          // Language configuration (memory in bytes)
-          const langConfig = {
-            python: {
-              image: 'python:3.9',
-              fileExt: 'py',
-              memLimit: 100 * 1024 * 1024, // 100MB in bytes
-              runCmd: 'python -u /app/code.py'
-            },
-            javascript: {
-              image: 'node:16',
-              fileExt: 'js',
-              memLimit: 100 * 1024 * 1024, // 100MB
-              runCmd: 'node /app/code.js'
-            },
-            java: {
-              image: 'openjdk:17',
-              fileExt: 'java',
-              memLimit: 512 * 1024 * 1024, // 512MB
-              runCmd: 'sh -c "javac /app/code.java && java -cp /app code"'
-            }
-          };
-    
-          const config = langConfig[language];
-          if (!config) {
-            throw new Error(`Unsupported language: ${language}`);
-          }
-    
-          // Create container with proper configuration
-          const container = await docker.createContainer({
-            Image: config.image,
-            Cmd: [
-              'sh', '-c',
-              `mkdir -p /app && ` +
-              `echo "${encodedCode}" | base64 -d > /app/code.${config.fileExt} && ` +
-              `${config.runCmd}`
-            ],
-            HostConfig: {
-              Memory: config.memLimit,
-              NetworkMode: 'none'
-            },
-            AttachStdout: true,
-            AttachStderr: true,
-            Tty: false
-          });
-    
-          // Start container
-          await container.start();
-    
-          // Stream logs
-          const stream = await container.logs({
-            follow: true,
-            stdout: true,
-            stderr: true
-          });
-    
-          stream.on('data', (chunk) => {
-            io.to(sessionId).emit('terminal-output', {
-              sessionId,
-              output: chunk.toString()
-            });
-          });
-    
-          // Wait for container to exit
-          await container.wait();
+
+          const PISTON_API_URL = 'https://emkc.org/api/v2/piston/execute';
+const ALLOWED_LANGUAGES = {
+  javascript: { version: '18.15.0' },
+  python: { version: '3.10.0' },
+  java: { version: '15.0.2' }
+};
+
+          // Execute via Piston API
+    const response = await axios.post(PISTON_API_URL, {
+      language: language,
+      version: ALLOWED_LANGUAGES[language].version,
+      files: [{ content: code }],
+      stdin: '',
+      args: [],
+      compile_timeout: 10000,
+      run_timeout: 5000,
+      compile_memory_limit: -1,
+      run_memory_limit: -1
+    });
+
+    const result = response.data;
+    let output = '';
+
+    if (result.compile && result.compile.stderr) {
+      output += `Compilation Error:\n${result.compile.stderr}\n`;
+    }
+
+    if (result.run.stderr) {
+      output += `Runtime Error:\n${result.run.stderr}\n`;
+    }
+
+    if (result.run.stdout) {
+      output += `Output:\n${result.run.stdout}\n`;
+    }
+
+    // Sanitize and limit output
+    const sanitizedOutput = output
+      .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+      .slice(0, 2000);
           
+          io.to(sessionId).emit('terminal-output', {
+            sessionId,
+            output: sanitizedOutput
+          });
+
           // Emit completion
           io.to(sessionId).emit('execution-complete', { sessionId });
     
           // Cleanup
-          await container.remove();
     
         } catch (error) {
           console.error('Execution error:', error);
+          const output = error.response?.data?.output || error.message;
           io.to(sessionId).emit('terminal-output', {
             sessionId,
-            output: `Execution error: ${error.message}\n`
+            output:  `Execution error: ${output}\n`
           });
         }
     });
