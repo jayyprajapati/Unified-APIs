@@ -12,7 +12,7 @@ router.post('/sendMessage', async (req, res) => {
       });
   
       await newMessage.save();
-      res.status(201).json({ success: true, message: 'Message received successfully' });
+      res.status(200).json({ success: true, message: 'Message received successfully' });
     } catch (error) {
       res.status(400).json({ success: false, error: error.message });
     }
