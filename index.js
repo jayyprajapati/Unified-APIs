@@ -11,7 +11,11 @@ connectRedisCloud();
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://*.jayprajapati.me/', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.options('*', cors());
 
 const httpServer = createServer(app);
