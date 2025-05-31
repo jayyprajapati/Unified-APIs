@@ -11,9 +11,12 @@ connectRedisCloud();
 const app = express();
 const port = process.env.PORT || 8000;
 
+app.use(cors());
+app.options('*', cors());
+
 const httpServer = createServer(app);
 
-app.use(cors());
+
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
