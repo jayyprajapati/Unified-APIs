@@ -32,12 +32,12 @@ app.get("/", (req, res) => {
 // Available Routes
 app.use("/api/auth/", require("./Routes/auth"));
 app.use("/api/notes/", require("./Routes/notes"));
-app.use("/api/stocks/", require("./Routes/stocks"));
+// app.use("/api/stocks/", require("./Routes/stocks"));
 app.use("/api/connect/", require("./Routes/messages"));
-app.use("/api/validateSession/", require("./Routes/sessionsValidation"));
+// app.use("/api/validateSession/", require("./Routes/sessionsValidation"));
 
-const collabRouter = require("./Routes/codeCollab")(httpServer); // Add this
-app.use("/api/codeCollab", collabRouter);
+// const collabRouter = require("./Routes/codeCollab")(httpServer); // Add this
+// app.use("/api/codeCollab", collabRouter);
 
 httpServer.listen(port, () => {
   console.log(`Server is running on port ${port}`);
