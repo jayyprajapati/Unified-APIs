@@ -1,62 +1,23 @@
-const express = require('express');
 const { Server } = require('socket.io');
 const Docker = require('dockerode');
 const { Buffer } = require('buffer');
-const axios = require('axios'); 
-// const cors = require('cors');
-const { Session } = require('../Models/Session');
-const { verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('../middleware/SessionManagement')
+const axios = require('axios');
+const { Session } = require('./Models/Session');
+const { verifySession, sessionExists, getSession, removeUserFromSession, isCodeSafe} = require('./middleware/SessionManagement');
 
-module.exports = (httpServer) => {
-  const router = express.Router();
-  // router.use(cors({
-  //   origin: 'https://codehive.jayprajapati.me', // Split comma-separated values
-  //   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  //   allowedHeaders: ['Content-Type', 'Authorization'],
-  //   // credentials: true
-  // }));
-
-  // router.options('*', cors());
-  // router.options('*', (req, res) => {
-  //   res.header('Access-Control-Allow-Origin', '*');
-  //   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  //   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  //   res.sendStatus(200); 
-  // });
+const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
       origin: "https://*.jayprajapati.me",
-      // methods: ["GET", "POST"],
-      // allowedHeaders: ["Authorization"],
-      // credentials: true
+      methods: ["GET", "POST"],
+      allowedHeaders: ["Authorization"],
+      credentials: true
     },
     transports: ['websocket']
   });
 
   const docker = new Docker();
 
-  // HTTP Routes
-  // router.post('/verify-session', async(req, res) => {
-  //   const { sessionId, password } = req.body;
-  //   if (!(await sessionExists(sessionId))) {
-  //     return res.status(404).json({ valid: false, error: 'Session does not exist' });
-  //   }
-  //   if (!(await verifySession(sessionId, password))) {
-  //     return res.status(401).json({ valid: false, error: 'Invalid password' });
-  //   }
-  //   res.json({ valid: true });
-  // });
-
-  // router.post('/create-session', async (req, res) => {
-  //   const { sessionId, password, owner } = req.body;
-  //   if (await sessionExists(sessionId)) {
-  //     return res.status(400).json({ valid: false, error: 'Session ID exists' });
-  //   }
-  //   await createSession(sessionId, password, owner);
-  //   res.json({ valid: true });
-  // });
-
-  // Socket.io Handlers
   io.on('connect', (socket) => {
     console.log('Client connected:', socket.id);
   
@@ -154,11 +115,11 @@ module.exports = (httpServer) => {
             const session = await getSession(sessionId);
             if (session) {
                 const user = session.users.find(u => u.socketId === socket.id);
-                console.log("user: ", user)
+                // console.log("user: ", user)
                 if (user) {
                 await removeUserFromSession(sessionId, socket.id);
                 socket.leave(sessionId);
-                console.log(user);
+                // console.log(user);
                 io.to(sessionId).emit('user-left', {
                     user: user.name,
                     message: `${user.name} has left the session`
@@ -311,6 +272,6 @@ const ALLOWED_LANGUAGES = {
       
     });
   });
-
-  return router;
 };
+
+module.exports = initSocket;

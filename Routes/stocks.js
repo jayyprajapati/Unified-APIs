@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { redisClient } = require("../redis");
+const { getRedisClient } = require("../services/redisService");
 const axios = require('axios');
 const Stock = require("../Models/Stock");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -16,24 +17,31 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 const formattedDate = () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
 
 const checkCache = (generateKey) => async (req, res, next) => {
-    // console.log("checking cache", req);
-    const key = generateKey(req)
-    // console.log('key: ' + key);
+    const key = generateKey(req);
+    const redis = getRedisClient();
 
-    const redisCacheData = await redisClient.get(key);
+    if (!redis) {
+        console.warn("Redis not available, skipping cache check.");
+        return next();
+    }
 
-    if (redisCacheData) {
-        console.log("got the data!");
-        return res.status(200).json(JSON.parse(redisCacheData));
-    } else {
-        console.log("no data found!");
-        next();
+    try {
+        const redisCacheData = await redis.get(key);
+
+        if (redisCacheData) {
+            console.log("Cache hit for key:", key);
+            return res.status(200).json(JSON.parse(redisCacheData));
+        } else {
+            console.log("Cache miss for key:", key);
+            next();
+        }
+    } catch (error) {
+        console.error("Error accessing Redis cache:", error);
+        next(); // Continue without cache if there's an error
     }
 };
 
-router.get('/stocksList', checkCache((req) => `List on ${formattedDate()}: c-${req.body.country}, e-${req.body.exchange}`), async (req, res) => {
-    // console.log('inside stocksList');
-
+router.get('/stocksList', checkCache((req) => `List on ${formattedDate()}: c-${req.body.country}, e-${req.body.exchange}`), async (req, res, next) => {
     try {
         const stocksListEndpoint = `https://api.twelvedata.com/stocks?country=${req.body.country}&exchange=${req.body.exchange}`;
         const resp = await axios.get(stocksListEndpoint)
@@ -41,21 +49,22 @@ router.get('/stocksList', checkCache((req) => `List on ${formattedDate()}: c-${r
         const data = resp.data;
 
         if (resp.status === 200) {
-            await redisClient.set(`List on ${formattedDate()}: c-${req.body.country}, e-${req.body.exchange}`, JSON.stringify(data), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            const redis = getRedisClient();
+            if (redis) {
+                await redis.set(`List on ${formattedDate()}: c-${req.body.country}, e-${req.body.exchange}`, JSON.stringify(data), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            }
             res.status(200).json(data);
         } else {
             return res.status(500).json(data)
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching data from API' });
+        next(error);
     }
 
 });
 
 
-router.get('/companyDetails', checkCache((req) => `${req.query.symbol} Details`), async (req, res) => {
-    // console.log('inside company details');
+router.get('/companyDetails', checkCache((req) => `${req.query.symbol} Details`), async (req, res, next) => {
     try {
         const dataFromMongo = await Stock.findOne({ name: req.query.symbol });
         if (dataFromMongo) {
@@ -68,26 +77,24 @@ router.get('/companyDetails', checkCache((req) => `${req.query.symbol} Details`)
 
                 const result = await model.generateContent(prompt);
                 const response = result.response;
-                // console.log(response);
                 const text = response.text();
-                const formattedRes = text.replace(/\\n/g, '').replace(/```/g, '').replace(/json/g, '').replace(/\\"/g, '"').replace(/^"|"$/g, '');
+                const formattedRes = text.replace(/\n/g, '').replace(/```/g, '').replace(/json/g, '').replace(/\\"/g, '"').replace(/^"|"$/g, '');
                 const formattedObj = JSON.parse(formattedRes)
                 const mongoSave = new Stock({ name: req.query.symbol, data: formattedObj });
                 await mongoSave.save();
                 res.status(200).json(mongoSave);
             } catch (error) {
                 console.error('Error calling Gemini API:', error.response ? error.response.data : error.message);
+                next(error);
             }
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching data from API' });
+        next(error);
     }
 })
 
 // Fetch Technical Analysis RSI data - Alpha Vantage API
-router.get('/getRSIData', checkCache((req) => `${req.query.interval}RSI: ${req.query.symbol}`), async (req, res) => {
-    // console.log(`${req.query.interval} RSI data api hit`);
+router.get('/getRSIData', checkCache((req) => `${req.query.interval}RSI: ${req.query.symbol}`), async (req, res, next) => {
     try {
         const queries = req.query;
         const RSIEndpoint = {
@@ -106,7 +113,6 @@ router.get('/getRSIData', checkCache((req) => `${req.query.interval}RSI: ${req.q
                 'x-rapidapi-host': process.env.API_HOST
             }
         };
-        // const RSIEndpoint = `https://www.alphavantage.co/query?function=RSI&symbol=${}&interval=${}&time_period=${}&series_type=${}&apikey=demo`;
         const resp = await axios.request(RSIEndpoint)
         const data = resp.data;
 
@@ -121,21 +127,21 @@ router.get('/getRSIData', checkCache((req) => `${req.query.interval}RSI: ${req.q
                 "meta": data["Meta Data"],
                 "values": values.slice(0, 150)
             }
-            await redisClient.set(`${queries.interval}RSI: ${queries.symbol}`, JSON.stringify(formattedResponse), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            const redis = getRedisClient();
+            if (redis) {
+                await redis.set(`${queries.interval}RSI: ${queries.symbol}`, JSON.stringify(formattedResponse), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            }
             res.status(200).json(formattedResponse);
         } else {
             return res.status(500).json(data)
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching data from API' });
+        next(error);
     }
 });
 
 // Fetch TimeSeries data - Alpha Vantage API
-router.get('/timeSeries', checkCache((req) => `${req.query.symbol} timeSeries ${req.query.interval}: ${formattedDate()}`), async (req, res) => {
-    // console.log("time series hit");
-
+router.get('/timeSeries', checkCache((req) => `${req.query.symbol} timeSeries ${req.query.interval}: ${formattedDate()}`), async (req, res, next) => {
     try {
         const timeSeriesEndpoint = {
             method: 'GET',
@@ -179,20 +185,21 @@ router.get('/timeSeries', checkCache((req) => `${req.query.symbol} timeSeries ${
                 "meta": data["Meta Data"],
                 "values": interval == 'daily' ? values.slice(0, 150) : interval == 'weekly' ? values.slice(0, 100) : values.slice(0, 50)
             }
-            await redisClient.set(`${req.query.symbol} timeSeries ${req.query.interval}: ${formattedDate()}`, JSON.stringify(formattedResponse), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            const redis = getRedisClient();
+            if (redis) {
+                await redis.set(`${req.query.symbol} timeSeries ${req.query.interval}: ${formattedDate()}`, JSON.stringify(formattedResponse), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            }
             res.status(200).json(formattedResponse);
         } else {
             return res.status(data.code).json(data);
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching data from API' });
+        next(error);
     }
 })
 
 // Fetch Technical Analysis SMA - Alpha Vantage API
-router.get('/getSMAData', checkCache((req) => `${req.query.interval}SMA: ${req.query.symbol}`), async (req, res) => {
-    // console.log(`${req.query.interval} SMA data api hit`);
+router.get('/getSMAData', checkCache((req) => `${req.query.interval}SMA: ${req.query.symbol}`), async (req, res, next) => {
     try {
         const queries = req.query;
         const RSIEndpoint = {
@@ -211,7 +218,6 @@ router.get('/getSMAData', checkCache((req) => `${req.query.interval}SMA: ${req.q
                 'x-rapidapi-host': process.env.API_HOST
             }
         };
-        // const RSIEndpoint = `https://www.alphavantage.co/query?function=RSI&symbol=${}&interval=${}&time_period=${}&series_type=${}&apikey=demo`;
         const resp = await axios.request(RSIEndpoint)
         const data = resp.data;
 
@@ -226,14 +232,16 @@ router.get('/getSMAData', checkCache((req) => `${req.query.interval}SMA: ${req.q
                 "meta": data["Meta Data"],
                 "values": values.slice(0, 150)
             }
-            await redisClient.set(`${queries.interval}SMA: ${queries.symbol}`, JSON.stringify(formattedResponse), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            const redis = getRedisClient();
+            if (redis) {
+                await redis.set(`${queries.interval}SMA: ${queries.symbol}`, JSON.stringify(formattedResponse), { EX: process.env.DEFAULT_EXPIRATION_DURATION });
+            }
             res.status(200).json(formattedResponse);
         } else {
             return res.status(500).json(data)
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching data from API' });
+        next(error);
     }
 })
 module.exports = router;

@@ -6,7 +6,9 @@ const JWT_KEY = process.env.REACT_APP_JWT_SIGNATURE_KEY;
 const fetchuser = (req, res, next) => {
   const token = req.header("auth-token");
   if (!token) {
-    return res.status(401).send({ error: "Invalid token" });
+    const error = new Error("Invalid token");
+    error.statusCode = 401;
+    return next(error);
   }
 
   try {
@@ -14,7 +16,9 @@ const fetchuser = (req, res, next) => {
     req.user = decoded.user;
     next();
   } catch (err) {
-    return res.status(401).send({ error: "Invalid token" });
+    const error = new Error("Invalid token");
+    error.statusCode = 401;
+    return next(error);
   }
 };
 

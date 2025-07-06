@@ -19,7 +19,7 @@ router.get(
       // Send the response
       res.send(notes);
     } catch (error) {
-      res.json({ message: "Some Internal error occurred", success });
+      next(error);
     }
   }
 );
@@ -62,7 +62,7 @@ router.post(
       // Send response
       res.json({ savedNote, message: "Note added Successfully", success });
     } catch (error) {
-      res.json({ message: "Some Internal error occurred", success });
+      next(error);
     }
   }
 );
@@ -117,7 +117,7 @@ router.put(
       // Send response
       res.json({ note, message: "Note updated Successfully", success });
     } catch (error) {
-      return res.json({ message: "Some Internal error occurred", success });
+      next(error);
     }
   }
 );
@@ -159,7 +159,7 @@ router.delete(
         id: note.id,
       });
     } catch (error) {
-      res.json({ message: "Some Internal error occurred", success });
+      next(error);
     }
   }
 );

@@ -34,7 +34,7 @@ router.post(
       //  Check if the user already exists with the same email
       let user = await User.findOne({ email: req.body.email });
       if (user) {
-        return res.json({
+        return res.status(400).json({
           success,
           errors: [{ msg: "User Already Exists" }],
           message: "User Already Exists",
@@ -61,7 +61,7 @@ router.post(
       res.json({ success, authToken, message: "Login Successful" });
     } catch (error) {
       console.error(error.message);
-      res.json({ success, message: "Some Internal Error Occurred" });
+      next(error);
     }
   }
 );
@@ -116,7 +116,7 @@ router.post(
       res.json({ success, authToken, message: "Login Successful" });
     } catch (error) {
       console.error(error.message);
-      res.status(500).json({ message: "Some Internal Error Occurred" });
+      next(error);
     }
   }
 );
@@ -130,7 +130,7 @@ router.post("/getuser", fetchuser, async (req, res) => {
     res.json({ user });
   } catch (error) {
     console.error(error.message);
-    res.status(500).send("Some Internal Error Occurred");
+    next(error);
   }
 });
 module.exports = router;

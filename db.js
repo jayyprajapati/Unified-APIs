@@ -4,6 +4,8 @@ const mongoUserName = process.env.MONGODB_USERNAME;
 const mongoUserPassword = process.env.MONGODB_PASSWORD;
 const mongoURI = `mongodb+srv://${mongoUserName}:${mongoUserPassword}@unifiedcluster.bj7dm.mongodb.net/?retryWrites=true&w=majority&appName=UnifiedCluster`;
 
+mongoose.set('strictQuery', true);
+
 const connectToMongo = () => {
   mongoose.connect(mongoURI, (err) => {
     if (err) console.log(err);
